@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "LeadSniper Lite",
+  "version": "1.0.0",
+  "description": "Extract business leads (name, phone, website, rating) from Google Maps and export them as CSV.",
+  "permissions": ["activeTab", "storage", "scripting", "tabs"],
+  "host_permissions": [
+    "https://www.google.com/maps/*",
+    "https://www.google.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "LeadSniper Lite",
+    "default_icon": {
+      "48": "icons/icon.png",
+      "128": "icons/icon.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.google.com/maps/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  }
+}
