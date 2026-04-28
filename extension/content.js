@@ -335,7 +335,7 @@
     panel.id = "leadsniper-panel";
     panel.innerHTML = `
       <div class="ls-header">
-        <div class="ls-title"><span class="ls-dot"></span> LeadSniper Lite</div>
+        <div class="ls-title"><span class="ls-dot"></span> RED EYE</div>
         <button class="ls-icon" id="ls-min" title="Minimize">—</button>
       </div>
       <div class="ls-body">

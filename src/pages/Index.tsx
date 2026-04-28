@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Download, Crosshair, MapPin, FileSpreadsheet, ShieldCheck, Phone, Globe, Star } from "lucide-react";
+import { Download, MapPin, FileSpreadsheet, ShieldCheck, Phone, Globe, Star } from "lucide-react";
+import redEyeLogo from "@/assets/red-eye-logo.png";
 
 const features = [
   { icon: MapPin, title: "Auto-scroll Maps", desc: "Loads results with polite 1–3s delays to avoid blocks." },
@@ -18,7 +19,7 @@ const Index = () => {
       .then((blob) => {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "leadsniper-lite.zip";
+        a.download = "red-eye.zip";
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -32,8 +33,8 @@ const Index = () => {
       {/* Nav */}
       <header className="container flex items-center justify-between py-6">
         <div className="flex items-center gap-2 font-semibold">
-          <Crosshair className="h-5 w-5 text-primary" />
-          <span>LeadSniper <span className="text-muted-foreground">Lite</span></span>
+          <img src={redEyeLogo} alt="RED EYE logo" width={28} height={28} className="h-7 w-7" />
+          <span className="tracking-wide">RED <span className="text-primary">EYE</span></span>
         </div>
         <Button variant="secondary" size="sm" onClick={downloadZip}>
           <Download className="mr-2 h-4 w-4" /> Download
@@ -47,6 +48,13 @@ const Index = () => {
             <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_10px_hsl(var(--accent))]" />
             Chrome Extension · Manifest V3
           </div>
+          <img
+            src={redEyeLogo}
+            alt="RED EYE logo"
+            width={96}
+            height={96}
+            className="mx-auto mb-6 h-24 w-24 drop-shadow-[0_0_30px_hsl(var(--primary)/0.6)]"
+          />
           <h1 className="text-balance text-5xl font-semibold tracking-tight sm:text-6xl">
             Scrape Google Maps leads.
             <br />
@@ -55,8 +63,8 @@ const Index = () => {
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-pretty text-base text-muted-foreground">
-            Search “gym in Guwahati” on Google Maps, hit Start, and LeadSniper Lite collects business names,
-            phones, websites and ratings — ready for outreach.
+            Search “gym in Guwahati” on Google Maps, hit Start, and RED EYE collects business names,
+            phones, emails, socials, websites and ratings — ready for outreach.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
             <Button
@@ -107,7 +115,7 @@ const Index = () => {
           </ol>
           <div className="mt-8 rounded-lg border border-border bg-secondary/40 p-4 text-sm text-muted-foreground">
             Then open <span className="text-foreground">google.com/maps</span>, run a search, and use the floating
-            <span className="mx-1 rounded bg-primary/15 px-1.5 py-0.5 text-primary">LeadSniper</span>
+            <span className="mx-1 rounded bg-primary/15 px-1.5 py-0.5 text-primary">RED EYE</span>
             panel on the right.
           </div>
         </section>
