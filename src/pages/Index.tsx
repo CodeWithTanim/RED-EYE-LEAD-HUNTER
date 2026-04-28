@@ -63,7 +63,7 @@ const Index = () => {
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-pretty text-base text-muted-foreground">
-            Search “gym in Guwahati” on Google Maps, hit Start, and RED EYE collects business names,
+            Search “gym in california” on Google Maps, hit Start, and RED EYE collects business names,
             phones, emails, socials, websites and ratings — ready for outreach.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">

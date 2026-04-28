@@ -1,177 +1,223 @@
-# 👁️ RED EYE
+<p align="center">
+  <img src="public/banner.png" alt="RED EYE Banner" width="75%">
+</p>
 
-> A modern, dark-themed Chrome Extension that scrapes business leads from
-> **Google Maps** search results and exports them to a clean **CSV** — ready
-> for outreach, cold email, and WhatsApp campaigns.
+<h1 align="center">👁️ RED EYE LEAD HUNTER</h1>
 
-RED EYE turns any Google Maps search (e.g. *"gym in Guwahati"*, *"dentist in
-Lisbon"*, *"coffee shop in Berlin"*) into a structured lead list in seconds.
-It auto-scrolls the results panel, opens each listing to harvest contact
-details (including email and socials), de-duplicates, and lets you download
-everything as a UTF‑8 CSV.
+<p align="center">
+  <strong>A high-performance, dark-themed Chrome Extension for automated lead extraction from Google Maps.</strong>
+</p>
 
-This repository contains **two things**:
-
-1.  **`/extension`** — the actual Chrome Extension (Manifest V3).
-2.  **`/src`** — the marketing & download landing page (React + Vite + Tailwind).
-
----
-
-## ✨ Features
-
-- 🗺️ **Auto-scroll Google Maps** results with polite, randomized 1.2–2.6 s delays.
-- 🧠 **Deep scrape** mode — opens each listing's side panel to grab email, WhatsApp, Instagram and Facebook links.
-- 📞 **WhatsApp fallback** — auto-builds a `wa.me/<phone>` link when no WA link is published.
-- 🧹 **Deduplication** by `Name + Address`.
-- 📥 **One-click CSV export** with UTF‑8 BOM (renders correctly in Excel).
-- 📋 **Copy all phone numbers** to clipboard.
-- 🚫 **Filter:** *Only show leads without a website* — perfect for web-design outreach.
-- 👁️ Floating, **draggable, dark-themed panel** injected directly on Google Maps.
-- 🔒 **100% local** — no servers, no accounts, no data leaves your browser.
-
-### Fields captured (CSV columns)
-
-| # | Column | Source |
-|---|---|---|
-| 1 | Business Name | Card / detail panel |
-| 2 | Country | Parsed from address |
-| 3 | City | Parsed from address |
-| 4 | Niche | Google Maps category |
-| 5 | Phone | Card + detail panel |
-| 6 | WhatsApp | `wa.me` / `api.whatsapp.com` link, or built from phone |
-| 7 | Email | `mailto:` link or inline regex on detail panel |
-| 8 | Website (Yes/No) | Derived |
-| 9 | Website Link | Authority link on detail panel |
-| 10 | Google Rating | Card |
-| 11 | Review Count | Card |
-| 12 | Instagram Link | Detail panel anchors |
-| 13 | Facebook Link | Detail panel anchors |
-| 14 | Google Map Link | Card `/maps/place/...` URL |
+<p align="center">
+  <img src="https://img.shields.io/badge/Manifest-V3-red?style=for-the-badge&logo=googlechrome" alt="Manifest V3">
+  <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react" alt="React 18">
+  <img src="https://img.shields.io/badge/Vite-5-646CFF?style=for-the-badge&logo=vite" alt="Vite 5">
+  <img src="https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/TypeScript-Ready-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript">
+</p>
 
 ---
 
-## 📁 Project structure
+## 📖 Overview
 
-```
-.
-├── extension/                  # The Chrome Extension (load this folder unpacked)
-│   ├── manifest.json           # MV3 manifest
-│   ├── background.js           # Service worker (popup ↔ content bridge, storage)
-│   ├── content.js              # Floating panel + scraping engine
-│   ├── popup.html / popup.js   # Toolbar popup UI
-│   ├── styles.css              # Floating panel styles
-│   └── icons/icon.png          # RED EYE logo
-│
-├── public/
-│   └── leadsniper-lite.zip     # Pre-packaged extension served by the landing page
-│
-├── src/                        # React + Vite landing page (download + install guide)
-│   ├── pages/Index.tsx
-│   ├── assets/red-eye-logo.png
-│   └── ...
-│
-├── index.html
-├── tailwind.config.ts
-├── vite.config.ts
-└── package.json
-```
+**RED EYE** is a sophisticated lead generation tool designed for outreach specialists, marketing agencies, and sales professionals. It automates the tedious process of harvesting business contact information from Google Maps, transforming raw search results into structured, actionable CSV data.
+
+Unlike generic scrapers, RED EYE is built with a "Deep Scrape" engine that navigates into individual business profiles to extract elusive data points like emails and social media links, all while maintaining a polite, human-like interaction pattern.
 
 ---
 
-## 🚀 Install the extension (Developer mode)
+## ✨ Key Features
 
-The extension is **not** on the Chrome Web Store. Install it manually:
-
-1.  Download **`leadsniper-lite.zip`** (from the landing page or `public/`).
-2.  **Unzip** it anywhere on your computer.
-3.  Open **`chrome://extensions`** in Chrome / Edge / Brave / Arc / Opera.
-4.  Enable **Developer mode** (toggle, top-right).
-5.  Click **Load unpacked** and select the unzipped folder.
-
-The 👁️ RED EYE icon will appear in your toolbar.
+- 🚀 **Automated Extraction**: Smart auto-scrolling with randomized delays (1.2s – 2.6s) to mimic human behavior.
+- 🧠 **Deep Scrape Engine**: Programmatically interacts with side panels to harvest emails, social links (IG/FB), and WhatsApp numbers.
+- 📞 **Smart WhatsApp Fallback**: Intelligently constructs `wa.me` links from localized phone numbers when direct links are missing.
+- 🧹 **Zero-Noise Data**: Automatic deduplication based on unique Name + Address pairs.
+- 📥 **One-Click Export**: Downloads UTF‑8 BOM encoded CSVs, ensuring perfect compatibility with Microsoft Excel.
+- 🎯 **Advanced Filtering**: Instantly isolate businesses without websites — a goldmine for web design and SEO agencies.
+- 🎨 **Premium UI/UX**: Features a draggable, dark-themed cyberpunk interface injected directly into the Google Maps DOM.
 
 ---
 
-## 🧑‍💻 How to use
+## 🛠️ Technical Stack
 
-1.  Open [google.com/maps](https://www.google.com/maps) and run a search, e.g.
-    `gym in Guwahati`.
-2.  A floating **RED EYE** panel appears on the right.
-3.  *(Optional)* Toggle **Deep scrape** — slower, but fills email + socials.
-4.  Click **▶ Start**. The extension auto-scrolls and collects leads.
-5.  When done (or whenever you want), click **⬇ Export CSV**.
-6.  Optional: **⎘ Copy Phones**, **🗑 Clear**, or filter to *no-website* leads.
+### Browser Extension
+- **Engine**: Vanilla JavaScript (ES6+)
+- **Standard**: Chrome Manifest V3
+- **State Management**: `chrome.storage.local` for persistence across sessions.
+- **Messaging**: Asynchronous message passing between Content Scripts and Background Service Workers.
 
-You can also drive Start / Stop / Export / Clear from the toolbar **popup**.
+### Landing Page & Dashboard
+- **Framework**: React 18 with TypeScript
+- **Bundler**: Vite 5
+- **Styling**: Tailwind CSS & shadcn/ui
+- **Icons**: Lucide React
 
 ---
 
-## 🛠️ Develop the landing page
+## 🧠 Technical Challenges & Solutions
 
-The marketing site (download + install guide) is a standard Vite + React app.
+### 1. Handling Dynamic DOM Virtualization
+**Challenge**: Google Maps uses aggressive DOM virtualization, meaning elements are destroyed and recreated as you scroll.
+**Solution**: Implemented a robust `MutationObserver` and custom polling logic to ensure the scraper consistently finds data even when the browser recycles DOM nodes.
+
+### 2. Rate Limiting & Bot Detection
+**Challenge**: Scraping too fast triggers CAPTCHAs or temporary blocks.
+**Solution**: Developed a randomized delay algorithm and localized interaction points to simulate natural human scrolling and clicking patterns.
+
+### 3. Data Normalization
+**Challenge**: Business details vary wildly in format (e.g., phone numbers, addresses).
+**Solution**: Used regular expressions and string parsing logic to clean and standardize fields like `Country`, `City`, and `WhatsApp` links for reliable outreach use.
+
+---
+
+## 📁 Project Structure
 
 ```bash
-# install deps
-npm install
-
-# dev server
-npm run dev
-
-# production build
-npm run build
+RED-EYE-LEAD-HUNTER
+├── 📁 extension
+│   ├── 📁 icons
+│   │   └── 🖼️ icon.png
+│   ├── 📄 background.js
+│   ├── 📄 content.js
+│   ├── ⚙️ manifest.json
+│   ├── 🌐 popup.html
+│   ├── 📄 popup.js
+│   └── 🎨 styles.css
+├── 📁 public
+│   ├── 🖼️ banner.png
+│   ├── 🖼️ favicon.png
+│   ├── 📦 leadsniper-lite.zip
+│   ├── 🖼️ placeholder.svg
+│   └── 📄 robots.txt
+├── 📁 src
+│   ├── 📁 assets
+│   │   └── 🖼️ red-eye-logo.png
+│   ├── 📁 components
+│   │   ├── 📁 ui
+│   │   │   ├── 📄 accordion.tsx
+│   │   │   ├── 📄 alert-dialog.tsx
+│   │   │   ├── 📄 alert.tsx
+│   │   │   ├── 📄 aspect-ratio.tsx
+│   │   │   ├── 📄 avatar.tsx
+│   │   │   ├── 📄 badge.tsx
+│   │   │   ├── 📄 breadcrumb.tsx
+│   │   │   ├── 📄 button.tsx
+│   │   │   ├── 📄 calendar.tsx
+│   │   │   ├── 📄 card.tsx
+│   │   │   ├── 📄 carousel.tsx
+│   │   │   ├── 📄 chart.tsx
+│   │   │   ├── 📄 checkbox.tsx
+│   │   │   ├── 📄 collapsible.tsx
+│   │   │   ├── 📄 command.tsx
+│   │   │   ├── 📄 context-menu.tsx
+│   │   │   ├── 📄 dialog.tsx
+│   │   │   ├── 📄 drawer.tsx
+│   │   │   ├── 📄 dropdown-menu.tsx
+│   │   │   ├── 📄 form.tsx
+│   │   │   ├── 📄 hover-card.tsx
+│   │   │   ├── 📄 input-otp.tsx
+│   │   │   ├── 📄 input.tsx
+│   │   │   ├── 📄 label.tsx
+│   │   │   ├── 📄 menubar.tsx
+│   │   │   ├── 📄 navigation-menu.tsx
+│   │   │   ├── 📄 pagination.tsx
+│   │   │   ├── 📄 popover.tsx
+│   │   │   ├── 📄 progress.tsx
+│   │   │   ├── 📄 radio-group.tsx
+│   │   │   ├── 📄 resizable.tsx
+│   │   │   ├── 📄 scroll-area.tsx
+│   │   │   ├── 📄 select.tsx
+│   │   │   ├── 📄 separator.tsx
+│   │   │   ├── 📄 sheet.tsx
+│   │   │   ├── 📄 sidebar.tsx
+│   │   │   ├── 📄 skeleton.tsx
+│   │   │   ├── 📄 slider.tsx
+│   │   │   ├── 📄 sonner.tsx
+│   │   │   ├── 📄 switch.tsx
+│   │   │   ├── 📄 table.tsx
+│   │   │   ├── 📄 tabs.tsx
+│   │   │   ├── 📄 textarea.tsx
+│   │   │   ├── 📄 toast.tsx
+│   │   │   ├── 📄 toaster.tsx
+│   │   │   ├── 📄 toggle-group.tsx
+│   │   │   ├── 📄 toggle.tsx
+│   │   │   ├── 📄 tooltip.tsx
+│   │   │   └── 📄 use-toast.ts
+│   │   └── 📄 NavLink.tsx
+│   ├── 📁 hooks
+│   │   ├── 📄 use-mobile.tsx
+│   │   └── 📄 use-toast.ts
+│   ├── 📁 lib
+│   │   └── 📄 utils.ts
+│   ├── 📁 pages
+│   │   ├── 📄 Index.tsx
+│   │   └── 📄 NotFound.tsx
+│   ├── 📁 test
+│   │   ├── 📄 example.test.ts
+│   │   └── 📄 setup.ts
+│   ├── 🎨 App.css
+│   ├── 📄 App.tsx
+│   ├── 🎨 index.css
+│   ├── 📄 main.tsx
+│   └── 📄 vite-env.d.ts
+├── ⚙️ .gitignore
+├── 📝 HOST.md
+├── 📝 README.md
+├── 📄 bun.lockb
+├── ⚙️ components.json
+├── 📄 eslint.config.js
+├── 🌐 index.html
+├── ⚙️ package-lock.json
+├── ⚙️ package.json
+├── 📄 postcss.config.js
+├── 📄 tailwind.config.ts
+├── ⚙️ tsconfig.app.json
+├── ⚙️ tsconfig.json
+├── ⚙️ tsconfig.node.json
+├── 📄 vite.config.ts
+└── 📄 vitest.config.ts
 ```
 
-The pre-packaged extension lives at `public/leadsniper-lite.zip` and is
-served from the site root as `/leadsniper-lite.zip`.
+---
+
+## 🚀 Installation (Developer Mode)
+
+1.  Download the latest **`leadsniper-lite.zip`** from the landing page.
+2.  Extract the archive to a local folder.
+3.  Navigate to `chrome://extensions` in your browser.
+4.  Enable **"Developer mode"** in the top-right corner.
+5.  Click **"Load unpacked"** and select the `extension/` folder or the extracted directory.
 
 ---
 
-## 🧪 Develop / repackage the extension
+## 🧑‍💻 Usage
 
-After editing anything inside `/extension`:
-
-```bash
-# from the project root
-rm -f public/leadsniper-lite.zip
-cd extension && zip -r ../public/leadsniper-lite.zip .
-```
-
-Then in Chrome go to `chrome://extensions` and click the **reload** ↻ icon
-on the RED EYE card.
-
-While iterating you don't need to re-zip — just **Load unpacked** the
-`extension/` folder directly and reload after each change.
+1.  Visit [Google Maps](https://www.google.com/maps).
+2.  Search for a niche (e.g., *"Web Design in New York"*).
+3.  The **RED EYE** panel will appear on the right.
+4.  Toggle **Deep Scrape** for full contact harvesting.
+5.  Press **Start** and watch your lead list grow in real-time.
+6.  Click **Export CSV** when you're ready to start your campaign.
 
 ---
 
-## 🧰 Tech stack
+## 👨‍💻 Meet the Developer
 
-- **Extension:** Vanilla JS, Chrome Manifest V3, `chrome.storage.local`,
-  `chrome.scripting`, content script injection.
-- **Landing page:** React 18, Vite 5, TypeScript, Tailwind CSS v3, shadcn/ui,
-  lucide-react.
+**MD SAMIUR RAHMAN TANIM**  
+*Developed by Vibe Coding for Time Save using Lovable*
 
----
-
-## ⚠️ Disclaimer & responsible use
-
-RED EYE only reads data that is **already publicly visible** in your own
-browser when you visit Google Maps — it does not bypass any login, captcha,
-or rate limit. That said:
-
-- Scraping may violate **Google's Terms of Service**. Use at your own risk.
-- Respect local laws (GDPR / CAN‑SPAM / PECR / etc.) when contacting leads.
-- Always honor opt-out requests and never spam.
-
-This tool is provided **as-is**, for educational and personal-research
-purposes. The authors accept no liability for misuse.
+<p align="left">
+  <a href="https://github.com/CodeWithTanim"><img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"></a>
+  <a href="https://linkedin.com/in/codewithtanim"><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"></a>
+  <a href="https://youtube.com/@CodeWithTanim"><img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube"></a>
+  <a href="https://facebook.com/CodeWithTanim"><img src="https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white" alt="Facebook"></a>
+  <a href="https://instagram.com/CodeWithTanim"><img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram"></a>
+</p>
 
 ---
 
-## 📝 License
+## ⚖️ Disclaimer & License
 
-MIT — do whatever you want, just don't blame us.
+This tool is for educational and research purposes. Users are responsible for complying with Google's Terms of Service and local privacy laws (GDPR/CCPA).
 
----
-
-👁️ **RED EYE** — *See every lead.*
+**License**: MIT
