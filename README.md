@@ -86,7 +86,7 @@ RED-EYE-LEAD-HUNTER
 ├── 📁 public
 │   ├── 🖼️ banner.png
 │   ├── 🖼️ favicon.png
-│   ├── 📦 leadsniper-lite.zip
+│   ├── 📦 red-eye.zip
 │   ├── 🖼️ placeholder.svg
 │   └── 📄 robots.txt
 ├── 📁 src
@@ -182,7 +182,7 @@ RED-EYE-LEAD-HUNTER
 
 ## 🚀 Installation (Developer Mode)
 
-1.  Download the latest **`leadsniper-lite.zip`** from the landing page.
+1.  Download the latest **`red-eye.zip`** from the landing page.
 2.  Extract the archive to a local folder.
 3.  Navigate to `chrome://extensions` in your browser.
 4.  Enable **"Developer mode"** in the top-right corner.

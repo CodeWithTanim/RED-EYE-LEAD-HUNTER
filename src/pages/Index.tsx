@@ -14,7 +14,7 @@ const features = [
 const Index = () => {
   // Fetch the zip and trigger a download (preview blocks direct static <a download>).
   const downloadZip = () => {
-    fetch("/leadsniper-lite.zip")
+    fetch("/red-eye.zip")
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.blob(); })
       .then((blob) => {
         const a = document.createElement("a");
