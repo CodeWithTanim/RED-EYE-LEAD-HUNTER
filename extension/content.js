@@ -308,7 +308,9 @@
     const blob = new Blob(["\ufeff" + toCSV(rows)], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `redeye_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
+    const d = new Date();
+    const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    a.download = `RedEye_${ymd}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
