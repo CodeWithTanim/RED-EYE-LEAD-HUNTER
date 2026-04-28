@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "LeadSniper Lite",
+  "name": "RED EYE",
   "version": "1.0.0",
-  "description": "Extract business leads (name, phone, website, rating) from Google Maps and export them as CSV.",
+  "description": "RED EYE — Extract business leads (name, phone, email, socials, website, rating) from Google Maps and export to CSV.",
   "permissions": ["activeTab", "storage", "scripting", "tabs"],
   "host_permissions": [
     "https://www.google.com/maps/*",
@@ -10,7 +10,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "LeadSniper Lite",
+    "default_title": "RED EYE",
     "default_icon": {
       "48": "icons/icon.png",
       "128": "icons/icon.png"
