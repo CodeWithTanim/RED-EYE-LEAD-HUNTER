@@ -1,7 +1,6 @@
 /* LeadSniper Lite — content.js
- * Injects a floating control panel onto Google Maps results pages,
- * scrolls the results feed, extracts business data, dedupes, and
- * exports a CSV.
+ * Scrapes Google Maps search results, opens each listing's detail
+ * panel to grab email/socials/WhatsApp, dedupes, and exports CSV.
  */
 
 (() => {
@@ -12,8 +11,9 @@
   const state = {
     running: false,
     leads: [],
-    seen: new Set(), // dedupe keys (name + address)
+    seen: new Set(),
     onlyNoWebsite: false,
+    deepScrape: true, // open each card to extract email + socials
   };
 
   // ---------- Utilities ----------
@@ -22,7 +22,6 @@
   const qs = (root, sel) => { try { return root.querySelector(sel); } catch { return null; } };
   const qsa = (root, sel) => { try { return Array.from(root.querySelectorAll(sel)); } catch { return []; } };
 
-  // Find the scrollable results feed (Google Maps left panel)
   function getFeed() {
     return (
       document.querySelector('div[role="feed"]') ||
@@ -31,17 +30,33 @@
     );
   }
 
-  // Get all listing cards inside the feed
   function getCards(feed) {
     if (!feed) return [];
-    // Listings usually have role="article" or are anchored by /maps/place/
     const articles = qsa(feed, 'div[role="article"]');
     if (articles.length) return articles;
     return qsa(feed, 'a.hfpxzc').map((a) => a.closest("div") || a);
   }
 
-  // Extract a single lead from a card element
-  function extractLead(card) {
+  // ---------- Address parsing (country/city) ----------
+  function parseAddress(address) {
+    if (!address) return { city: "", country: "" };
+    const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+    let country = "";
+    let city = "";
+    if (parts.length >= 2) {
+      country = parts[parts.length - 1];
+      // strip postal code from country segment if present
+      country = country.replace(/\b\d{3,}\b/g, "").trim();
+      // city = second-to-last segment, strip postal codes
+      city = parts[parts.length - 2].replace(/\b\d{3,}[A-Z]?\b/g, "").trim();
+    } else if (parts.length === 1) {
+      city = parts[0];
+    }
+    return { city, country };
+  }
+
+  // ---------- Card-level extraction (cheap) ----------
+  function extractCardLead(card) {
     const link = qs(card, 'a.hfpxzc') || qs(card, 'a[href*="/maps/place/"]');
     const href = link?.href || "";
     const name =
@@ -50,26 +65,22 @@
       qs(card, "div.fontHeadlineSmall")?.textContent?.trim() ||
       "";
 
-    // Rating + reviews — typically inside a span with aria-label like "4.5 stars 123 Reviews"
     let rating = "";
     let reviews = "";
-    const ratingSpan = qs(card, 'span.MW4etd') || qs(card, 'span[role="img"][aria-label*="star" i]');
-    if (ratingSpan) {
-      rating = qs(card, 'span.MW4etd')?.textContent?.trim() || "";
-      const reviewsEl = qs(card, 'span.UY7F9');
-      if (reviewsEl) reviews = reviewsEl.textContent.replace(/[()]/g, "").trim();
-      if (!rating) {
-        const m = ratingSpan.getAttribute("aria-label")?.match(/([\d.]+)\s*stars?\s*([\d,]+)?/i);
-        if (m) { rating = m[1] || ""; reviews = m[2] || ""; }
-      }
+    const ratingEl = qs(card, "span.MW4etd");
+    const reviewsEl = qs(card, "span.UY7F9");
+    if (ratingEl) rating = ratingEl.textContent.trim();
+    if (reviewsEl) reviews = reviewsEl.textContent.replace(/[()]/g, "").trim();
+    if (!rating) {
+      const aria = qs(card, 'span[role="img"][aria-label*="star" i]')?.getAttribute("aria-label") || "";
+      const m = aria.match(/([\d.]+)\s*stars?\s*([\d,]+)?/i);
+      if (m) { rating = m[1] || ""; reviews = m[2] || ""; }
     }
 
-    // Info rows (category, address, phone) live in .W4Efsd lines
     const infoBlocks = qsa(card, "div.W4Efsd");
     let category = "", address = "", phone = "";
     const allText = infoBlocks.map((b) => b.textContent.replace(/\s+/g, " ").trim()).join(" · ");
 
-    // Category & address: usually in a "Category · Address" row
     for (const b of infoBlocks) {
       const spans = qsa(b, "span");
       const text = spans.map((s) => s.textContent.trim()).filter(Boolean);
@@ -80,11 +91,9 @@
       }
     }
 
-    // Phone — match standard formats from the combined text
     const phoneMatch = allText.match(/(\+?\d[\d\s().-]{7,}\d)/);
     if (phoneMatch) phone = phoneMatch[1].trim();
 
-    // Website — Google Maps adds a direct "Website" link on each card
     const websiteEl =
       qs(card, 'a[data-value="Website"]') ||
       qs(card, 'a[aria-label^="Visit"]') ||
@@ -92,44 +101,147 @@
     const website = websiteEl?.href || "";
 
     if (!name) return null;
+    const { city, country } = parseAddress(address);
 
     return {
       name,
-      category,
+      niche: category,
+      country,
+      city,
       address,
       phone,
+      whatsapp: "",
+      email: "",
+      hasWebsite: website ? "Yes" : "No",
       website,
       rating,
       reviews,
+      instagram: "",
+      facebook: "",
       mapsLink: href,
+      _card: card,
     };
   }
 
-  // Scrape all currently visible cards into state.leads (deduped)
-  function scrapeVisible() {
+  // ---------- Detail-panel extraction (deep) ----------
+  // Opens a card by clicking it, waits for the side panel to populate,
+  // then harvests email/socials/whatsapp + better phone/website/address.
+  async function enrichFromDetail(lead) {
+    const card = lead._card;
+    const link = qs(card, 'a.hfpxzc') || qs(card, 'a[href*="/maps/place/"]');
+    if (!link) return lead;
+
+    link.click();
+    // Wait for the detail panel to load (heading appears)
+    let panelEl = null;
+    for (let i = 0; i < 25; i++) {
+      await sleep(180);
+      panelEl =
+        document.querySelector('div[role="main"][aria-label]') ||
+        document.querySelector('div.m6QErb.DxyBCb');
+      const heading = panelEl && qs(panelEl, "h1");
+      if (heading && heading.textContent.trim()) break;
+    }
+    if (!panelEl) return lead;
+
+    await sleep(rand(400, 800));
+
+    // Better address
+    const addrBtn = qs(panelEl, 'button[data-item-id="address"]');
+    if (addrBtn) {
+      const txt = addrBtn.getAttribute("aria-label")?.replace(/^Address:\s*/i, "").trim() ||
+        qs(addrBtn, "div.Io6YTe")?.textContent?.trim() || "";
+      if (txt) {
+        lead.address = txt;
+        const { city, country } = parseAddress(txt);
+        lead.city = city || lead.city;
+        lead.country = country || lead.country;
+      }
+    }
+
+    // Phone
+    const phoneBtn = qs(panelEl, 'button[data-item-id^="phone"]');
+    if (phoneBtn) {
+      const txt = phoneBtn.getAttribute("aria-label")?.replace(/^Phone:\s*/i, "").trim() ||
+        qs(phoneBtn, "div.Io6YTe")?.textContent?.trim() || "";
+      if (txt) lead.phone = txt;
+    }
+
+    // Website (authority link)
+    const siteBtn = qs(panelEl, 'a[data-item-id="authority"]') || qs(panelEl, 'a[aria-label^="Website"]');
+    if (siteBtn?.href) {
+      lead.website = siteBtn.href;
+      lead.hasWebsite = "Yes";
+    }
+
+    // Scan all anchors in the panel for socials / whatsapp / mailto
+    const anchors = qsa(panelEl, "a[href]");
+    for (const a of anchors) {
+      const href = a.href || "";
+      if (!href) continue;
+      if (!lead.email && href.startsWith("mailto:")) {
+        lead.email = href.replace(/^mailto:/, "").split("?")[0];
+      }
+      if (!lead.whatsapp && /(wa\.me|api\.whatsapp\.com|whatsapp\.com\/send)/i.test(href)) {
+        lead.whatsapp = href;
+      }
+      if (!lead.instagram && /instagram\.com\//i.test(href)) {
+        lead.instagram = href;
+      }
+      if (!lead.facebook && /(facebook\.com|fb\.com)\//i.test(href)) {
+        lead.facebook = href;
+      }
+    }
+
+    // If no email found in panel and we have a website, try to scan the
+    // panel text for any email pattern (some businesses list it inline).
+    if (!lead.email) {
+      const m = (panelEl.textContent || "").match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+      if (m) lead.email = m[0];
+    }
+
+    // Phone-derived WhatsApp fallback (best-effort)
+    if (!lead.whatsapp && lead.phone) {
+      const digits = lead.phone.replace(/[^\d+]/g, "").replace(/^00/, "+");
+      if (/^\+?\d{8,15}$/.test(digits)) {
+        lead.whatsapp = `https://wa.me/${digits.replace(/^\+/, "")}`;
+      }
+    }
+
+    return lead;
+  }
+
+  // ---------- Scrape orchestration ----------
+  async function scrapeVisible() {
     const feed = getFeed();
     const cards = getCards(feed);
     let added = 0;
     for (const card of cards) {
-      const lead = extractLead(card);
+      const lead = extractCardLead(card);
       if (!lead) continue;
       const key = (lead.name + "|" + lead.address).toLowerCase();
       if (state.seen.has(key)) continue;
       state.seen.add(key);
+
+      if (state.deepScrape) {
+        try { await enrichFromDetail(lead); } catch (e) { /* keep card-level data */ }
+        await sleep(rand(300, 700));
+      }
+      delete lead._card;
       state.leads.push(lead);
       added++;
+      updatePanel();
+      if (!state.running) break;
     }
     return added;
   }
 
-  // Detect the "You've reached the end of the list" sentinel
   function reachedEnd(feed) {
     if (!feed) return true;
     const txt = feed.textContent || "";
     return /end of the list/i.test(txt);
   }
 
-  // Main scraping loop — scrolls the feed and extracts as it goes
   async function runScraping() {
     const feed = getFeed();
     if (!feed) {
@@ -143,11 +255,11 @@
     let lastHeight = feed.scrollHeight;
 
     while (state.running) {
-      scrapeVisible();
-      updatePanel();
+      await scrapeVisible();
+      if (!state.running) break;
 
       feed.scrollTo({ top: feed.scrollHeight, behavior: "smooth" });
-      await sleep(rand(1200, 2600)); // polite delay 1.2–2.6s
+      await sleep(rand(1200, 2600));
 
       const newHeight = feed.scrollHeight;
       if (newHeight === lastHeight) stagnantRounds++;
@@ -157,24 +269,35 @@
       if (reachedEnd(feed) || stagnantRounds >= 3) break;
     }
 
-    scrapeVisible();
     state.running = false;
     updatePanel();
     persist();
   }
 
-  // Persist leads via background -> chrome.storage
   function persist() {
     chrome.runtime.sendMessage({ type: "LEADS_UPDATE", leads: state.leads });
   }
 
   // ---------- CSV export ----------
+  const CSV_HEADERS = [
+    "Business Name", "Country", "City", "Niche",
+    "Phone", "WhatsApp", "Email",
+    "Website (Yes/No)", "Website Link",
+    "Google Rating", "Review Count",
+    "Instagram Link", "Facebook Link", "Google Map Link",
+  ];
+
   function toCSV(rows) {
-    const headers = ["Name", "Category", "Address", "Phone", "Website", "Rating", "Reviews", "Google Maps Link"];
     const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const lines = [headers.join(",")];
+    const lines = [CSV_HEADERS.join(",")];
     for (const r of rows) {
-      lines.push([r.name, r.category, r.address, r.phone, r.website, r.rating, r.reviews, r.mapsLink].map(esc).join(","));
+      lines.push([
+        r.name, r.country, r.city, r.niche,
+        r.phone, r.whatsapp, r.email,
+        r.hasWebsite, r.website,
+        r.rating, r.reviews,
+        r.instagram, r.facebook, r.mapsLink,
+      ].map(esc).join(","));
     }
     return lines.join("\n");
   }
@@ -182,7 +305,7 @@
   function downloadCSV() {
     const rows = filteredLeads();
     if (!rows.length) { alert("No leads to export yet."); return; }
-    const blob = new Blob([toCSV(rows)], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\ufeff" + toCSV(rows)], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `leadsniper_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
@@ -201,7 +324,7 @@
   }
 
   function filteredLeads() {
-    return state.onlyNoWebsite ? state.leads.filter((l) => !l.website) : state.leads;
+    return state.onlyNoWebsite ? state.leads.filter((l) => l.hasWebsite === "No") : state.leads;
   }
 
   // ---------- Floating panel UI ----------
@@ -229,6 +352,9 @@
           <button class="ls-btn" id="ls-copy">⎘ Copy Phones</button>
         </div>
         <label class="ls-check">
+          <input type="checkbox" id="ls-deep" checked /> Deep scrape (email + socials, slower)
+        </label>
+        <label class="ls-check">
           <input type="checkbox" id="ls-nowebsite" /> Only show leads without a website
         </label>
         <div class="ls-row">
@@ -237,7 +363,7 @@
         </div>
         <div id="ls-preview-wrap" class="ls-preview-wrap" hidden>
           <table class="ls-table">
-            <thead><tr><th>Name</th><th>Phone</th><th>Website</th></tr></thead>
+            <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Site</th></tr></thead>
             <tbody id="ls-tbody"></tbody>
           </table>
         </div>
@@ -262,9 +388,11 @@
       if (!confirm("Clear all collected leads?")) return;
       state.leads = []; state.seen.clear(); persist(); updatePanel(); renderPreview();
     };
+    panel.querySelector("#ls-deep").onchange = (e) => { state.deepScrape = e.target.checked; };
     panel.querySelector("#ls-nowebsite").onchange = (e) => {
       state.onlyNoWebsite = e.target.checked;
       renderPreview();
+      updatePanel();
     };
     panel.querySelector("#ls-preview").onclick = () => {
       const wrap = panel.querySelector("#ls-preview-wrap");
@@ -281,6 +409,7 @@
     countEl.textContent = filteredLeads().length;
     statusEl.textContent = state.running ? "• scraping…" : "";
     statusEl.className = "ls-status" + (state.running ? " ls-live" : "");
+    renderPreview();
   }
 
   function renderPreview() {
@@ -291,6 +420,7 @@
         (l) => `<tr>
           <td>${escapeHtml(l.name)}</td>
           <td>${escapeHtml(l.phone)}</td>
+          <td>${escapeHtml(l.email || "—")}</td>
           <td>${l.website ? `<a href="${l.website}" target="_blank" rel="noopener">link</a>` : "—"}</td>
         </tr>`
       )
@@ -308,7 +438,6 @@
     setTimeout(() => { statusEl.textContent = prev; }, 1800);
   }
 
-  // Simple drag handler for the panel header
   function makeDraggable(el, handle) {
     let sx = 0, sy = 0, ox = 0, oy = 0, dragging = false;
     handle.style.cursor = "move";
@@ -338,7 +467,6 @@
     return true;
   });
 
-  // Boot
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", buildPanel);
   } else {
