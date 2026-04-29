@@ -21,6 +21,32 @@
   const rand = (min, max) => Math.floor(Math.random() * (max - min) + min);
   const qs = (root, sel) => { try { return root.querySelector(sel); } catch { return null; } };
   const qsa = (root, sel) => { try { return Array.from(root.querySelectorAll(sel)); } catch { return []; } };
+  const cleanUrl = (url) => {
+    if (!url) return "";
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes("google.") && u.pathname === "/url") {
+        return u.searchParams.get("q") || url;
+      }
+    } catch (e) {}
+    return url;
+  };
+  const isUnrelated = (url, label) => {
+    if (!url) return true;
+    const lowerUrl = url.toLowerCase();
+    const lowerLabel = (label || "").toLowerCase();
+    const unrelatedPatterns = [
+      "google.com/searchviewer",
+      "google.com/maps/reserve",
+      "eat.chownow.com",
+      "opentable.com",
+      "allmenus.com",
+      "fooddiscoveryapp.com"
+    ];
+    if (unrelatedPatterns.some((p) => lowerUrl.includes(p))) return true;
+    if (lowerLabel.includes("menu") || lowerLabel.includes("order online") || lowerLabel.includes("reservation")) return true;
+    return false;
+  };
 
   function getFeed() {
     return (
@@ -96,9 +122,9 @@
 
     const websiteEl =
       qs(card, 'a[data-value="Website"]') ||
-      qs(card, 'a[aria-label^="Visit"]') ||
       qs(card, 'a[aria-label*="website" i]');
-    const website = websiteEl?.href || "";
+    let website = cleanUrl(websiteEl?.href || "");
+    if (isUnrelated(website, websiteEl?.getAttribute("aria-label"))) website = "";
 
     if (!name) return null;
     const { city, country } = parseAddress(address);
@@ -132,15 +158,16 @@
     if (!link) return lead;
 
     link.click();
-    // Wait for the detail panel to load (heading appears)
+    // Wait for the detail panel to load and update to the NEW business (avoid stale data)
     let panelEl = null;
-    for (let i = 0; i < 25; i++) {
-      await sleep(180);
+    for (let i = 0; i < 30; i++) {
+      await sleep(200);
       panelEl =
         document.querySelector('div[role="main"][aria-label]') ||
-        document.querySelector('div.m6QErb.DxyBCb');
-      const heading = panelEl && qs(panelEl, "h1");
-      if (heading && heading.textContent.trim()) break;
+        document.querySelector('div.m6QErb.DxyBCb') ||
+        document.querySelector('div[role="region"][aria-label]');
+      const heading = panelEl && qs(panelEl, "h1")?.textContent?.trim();
+      if (heading && (heading.includes(lead.name) || lead.name.includes(heading))) break;
     }
     if (!panelEl) return lead;
 
@@ -168,10 +195,18 @@
     }
 
     // Website (authority link)
-    const siteBtn = qs(panelEl, 'a[data-item-id="authority"]') || qs(panelEl, 'a[aria-label^="Website"]');
+    const siteBtn =
+      qs(panelEl, 'a[data-item-id="authority"]') ||
+      qs(panelEl, 'a[aria-label^="Website:"]') ||
+      qs(panelEl, 'a[aria-label="Open website"]') ||
+      qs(panelEl, 'a[aria-label^="Website"]');
     if (siteBtn?.href) {
-      lead.website = siteBtn.href;
-      lead.hasWebsite = "Yes";
+      const url = cleanUrl(siteBtn.href);
+      const label = siteBtn.getAttribute("aria-label");
+      if (url && !url.includes("google.com/maps") && !isUnrelated(url, label)) {
+        lead.website = url;
+        lead.hasWebsite = "Yes";
+      }
     }
 
     // Scan all anchors in the panel for socials / whatsapp / mailto
